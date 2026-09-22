@@ -22,11 +22,8 @@ envelope.addEventListener("click", () => {
 
 // Logic to move the NO btn
 
-noBtn.addEventListener("mouseover", () => {
-    const min = 200;
-    const max = 200;
-
-    const distance = Math.random() * (max - min) + min;
+function dodgeNoBtn() {
+    const distance = Math.min(window.innerWidth, window.innerHeight) * 0.25;
     const angle = Math.random() * Math.PI * 2;
 
     const moveX = Math.cos(angle) * distance;
@@ -34,7 +31,51 @@ noBtn.addEventListener("mouseover", () => {
 
     noBtn.style.transition = "transform 0.3s ease";
     noBtn.style.transform = `translate(${moveX}px, ${moveY}px)`;
-});
+}
+
+noBtn.addEventListener("mouseover", dodgeNoBtn);
+
+// On touch devices there's no "hover before click", the finger lands
+// straight on the button. So instead we watch the finger as it moves
+// across the screen and make the button flee as soon as it gets close,
+// mimicking the mouseover dodge.
+let lastDodgeAt = 0;
+
+function isFingerNearNoBtn(x, y) {
+    const rect = noBtn.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const proximity = Math.max(rect.width, rect.height);
+
+    return Math.hypot(x - centerX, y - centerY) < proximity;
+}
+
+document.addEventListener(
+    "touchmove",
+    (e) => {
+        const touch = e.touches[0];
+        if (!touch) return;
+
+        const now = Date.now();
+        if (now - lastDodgeAt < 350) return;
+
+        if (isFingerNearNoBtn(touch.clientX, touch.clientY)) {
+            lastDodgeAt = now;
+            dodgeNoBtn();
+        }
+    },
+    { passive: true }
+);
+
+// Fallback for a direct tap that lands on it before touchmove ever fires
+noBtn.addEventListener(
+    "touchstart",
+    (e) => {
+        e.preventDefault();
+        dodgeNoBtn();
+    },
+    { passive: false }
+);
 
 // Logic to make YES btn to grow
 
